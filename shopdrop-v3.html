@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ShopDrop — Mini E-Commerce</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* =============================================
+       CSS VARIABLES
+    ============================================= */
+    :root {
+      --bg:        #faf9f6;
+      --white:     #ffffff;
+      --ink:       #111118;
+      --muted:     #888899;
+      --border:    #e8e5de;
+      --accent:    #c0392b;
+      --accent-lt: #fdf0ee;
+      --green:     #1a7a4a;
+      --green-lt:  #e8f7ef;
+      --tag-bg:    #f0eee8;
+      --radius:    16px;
+      --shadow:    0 4px 24px rgba(0,0,0,0.07);
+      --google:    #4285F4;
+      /* NEW: wishlist heart color */
+      --heart:     #e74c3c;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; }
+    img  { display:block; max-width:100%; }
+
+    /* =============================================
+       STICKY HEADER
+    ============================================= */
+    header {
+      position:sticky; top:0; z-index:200;
+      background:var(--white);
+      border-bottom:1px solid var(--border);
+      height:62px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 32px;
+    }
+
+    .logo {
+      font-family:'Cormorant Garamond',serif;
+      font-size:1.7rem; font-weight:700; letter-spacing:-0.5px; color:var(--ink);
+    }
+    .logo span { color:var(--accent); }
+
+    .nav-right { display:flex; align-items:center; gap:8px; }
+
+    .nav-tab {
+      background:transparent; border:1px solid var(--border); border-radius:8px;
+      padding:7px 18px; font-family:'DM Sans',sans-serif; font-size:0.88rem;
+      font-weight:500; color:var(--muted); cursor:pointer; transition:all .18s;
+    }
+    .nav-tab.active  { background:var(--ink); border-color:var(--ink); color:white; }
+    .nav-tab:hover:not(.active) { border-color:var(--ink); color:var(--ink); }
+
+    /* Cart button with badge */
+    .cart-btn {
+      position:relative; background:var(--accent); border:none; border-radius:10px;
+      padding:8px 16px; color:white; font-family:'DM Sans',sans-serif;
+      font-weight:600; font-size:0.88rem; cursor:pointer; transition:opacity .18s;
+      display:flex; align-items:center; gap:6px;
+    }
+    .cart-btn:hover { opacity:.85; }
+
+    /* IMPROVED: Cart badge — shows total item count */
+    .cart-count {
+      background:white; color:var(--accent); border-radius:50%;
+      width:20px; height:20px; font-size:0.72rem; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+      /* NEW: animate when count changes */
+      transition:transform .2s;
+    }
+    .cart-count.bump { transform:scale(1.4); }
+
+    .user-avatar {
+      width:34px; height:34px; border-radius:50%;
+      object-fit:cover; border:2px solid var(--border);
+      cursor:pointer; transition:border-color .2s;
+    }
+    .user-avatar:hover { border-color:var(--accent); }
+
+    /* =============================================
+       PAGES
+    ============================================= */
+    .page { display:none; }
+    .page.active { display:block; }
+
+    /* =============================================
+       SHOP PAGE HERO
+    ============================================= */
+    .shop-hero {
+      padding:48px 32px 36px;
+      max-width:1200px; margin:0 auto;
+      display:flex; align-items:flex-end;
+      justify-content:space-between; flex-wrap:wrap; gap:20px;
+    }
+    .shop-hero h1 {
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(2rem,4vw,3rem); font-weight:700; line-height:1.1;
+    }
+    .shop-hero h1 em { font-style:italic; color:var(--accent); }
+
+    .controls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .search-input {
+      background:var(--white); border:1px solid var(--border); border-radius:10px;
+      padding:9px 14px 9px 36px; font-family:'DM Sans',sans-serif; font-size:0.9rem;
+      color:var(--ink); width:220px; outline:none; transition:border-color .2s;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:11px center;
+    }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:#bbb; }
+
+    .filter-select, .sort-select {
+      background:var(--white); border:1px solid var(--border); border-radius:10px;
+      padding:9px 14px; font-family:'DM Sans',sans-serif; font-size:0.9rem;
+      color:var(--ink); outline:none; cursor:pointer; transition:border-color .2s;
+    }
+    .filter-select:focus, .sort-select:focus { border-color:var(--accent); }
+
+    /* NEW: Clear filters button in controls */
+    .btn-clear-filters {
+      background:none; border:1px solid var(--border); border-radius:10px;
+      padding:9px 14px; font-family:'DM Sans',sans-serif; font-size:0.88rem;
+      color:var(--muted); cursor:pointer; transition:all .18s; white-space:nowrap;
+    }
+    .btn-clear-filters:hover { border-color:var(--accent); color:var(--accent); }
+
+    .result-info {
+      font-size:0.82rem; color:var(--muted);
+      padding:0 32px; max-width:1200px; margin:0 auto 16px;
+    }
+
+    /* =============================================
+       PRODUCTS GRID
+    ============================================= */
+    .products-grid {
+      max-width:1200px; margin:0 auto;
+      padding:0 32px 64px;
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+      gap:22px;
+    }
+
+    /* =============================================
+       PRODUCT CARD — IMPROVED
+    ============================================= */
+    .product-card {
+      background:var(--white); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);
+      transition:transform .22s, box-shadow .22s;
+      animation:fadeUp .3s ease both;
+      /* NEW: flex column so action buttons stay at bottom */
+      display:flex; flex-direction:column;
+    }
+    .product-card:hover { transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,.11); }
+
+    .product-card:nth-child(1){animation-delay:.00s} .product-card:nth-child(2){animation-delay:.04s}
+    .product-card:nth-child(3){animation-delay:.08s} .product-card:nth-child(4){animation-delay:.12s}
+    .product-card:nth-child(5){animation-delay:.16s} .product-card:nth-child(6){animation-delay:.20s}
+    .product-card:nth-child(7){animation-delay:.24s} .product-card:nth-child(8){animation-delay:.28s}
+    .product-card:nth-child(9){animation-delay:.32s} .product-card:nth-child(10){animation-delay:.36s}
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .product-img-wrap {
+      height:200px; overflow:hidden; background:var(--tag-bg);
+      position:relative; cursor:pointer;
+    }
+    .product-img-wrap img {
+      width:100%; height:100%; object-fit:cover; transition:transform .4s ease;
+    }
+    .product-card:hover .product-img-wrap img { transform:scale(1.05); }
+
+    .product-img-wrap img.loading { opacity:0; transition:opacity .4s; }
+    .product-img-wrap img.loaded  { opacity:1; }
+
+    .img-skeleton {
+      position:absolute; inset:0;
+      background:linear-gradient(90deg, #f0eee8 25%, #e8e5de 50%, #f0eee8 75%);
+      background-size:200% 100%;
+      animation:shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position:200% 0; }
+      100% { background-position:-200% 0; }
+    }
+
+    .product-tag {
+      position:absolute; top:12px; left:12px;
+      background:rgba(255,255,255,.9); border-radius:6px;
+      padding:3px 9px; font-size:0.72rem; font-weight:600;
+      text-transform:uppercase; letter-spacing:.5px; color:var(--ink);
+    }
+
+    /* NEW: Wishlist heart button — top-right of image */
+    .btn-wish {
+      position:absolute; top:10px; right:10px;
+      width:32px; height:32px; border-radius:50%;
+      background:rgba(255,255,255,.9); border:none; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1rem; transition:all .2s; box-shadow:0 1px 4px rgba(0,0,0,.12);
+      z-index:2;
+    }
+    .btn-wish:hover { transform:scale(1.15); background:white; }
+    /* Filled heart when wishlisted */
+    .btn-wish.wishlisted { background:var(--accent-lt); }
+
+    .product-info { padding:16px; flex:1; display:flex; flex-direction:column; }
+
+    .product-name {
+      font-size:0.98rem; font-weight:600; margin-bottom:6px; line-height:1.35;
+      cursor:pointer; transition:color .15s;
+    }
+    .product-name:hover { color:var(--accent); }
+
+    .product-price-row {
+      display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+    }
+    .product-price {
+      font-family:'Cormorant Garamond',serif; font-size:1.35rem; font-weight:700; color:var(--ink);
+    }
+    .product-rating { font-size:0.78rem; color:#f0a500; }
+
+    /* IMPROVED: card action buttons row */
+    .card-actions {
+      display:flex; gap:8px; margin-top:auto;
+    }
+
+    .btn-add-cart {
+      flex:1; background:var(--ink); color:white; border:none; border-radius:10px;
+      padding:10px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.88rem;
+      cursor:pointer; transition:background .18s, transform .1s;
+    }
+    .btn-add-cart:hover  { background:var(--accent); }
+    .btn-add-cart:active { transform:scale(.97); }
+    .btn-add-cart.in-cart { background:var(--green); }
+
+    /* NEW: small "Details" button on card */
+    .btn-details {
+      background:var(--tag-bg); border:1px solid var(--border); border-radius:10px;
+      padding:10px 12px; font-family:'DM Sans',sans-serif; font-size:0.88rem;
+      font-weight:500; color:var(--ink); cursor:pointer; transition:all .18s;
+      white-space:nowrap;
+    }
+    .btn-details:hover { background:var(--border); }
+
+    /* =============================================
+       EMPTY STATE
+    ============================================= */
+    .empty-state {
+      grid-column:1/-1; text-align:center; padding:64px 20px; color:var(--muted);
+    }
+    .empty-state .icon { font-size:3rem; margin-bottom:14px; }
+    .empty-state a { color:var(--accent); cursor:pointer; text-decoration:underline; }
+
+    /* =============================================
+       NEW: WISHLIST PAGE
+    ============================================= */
+    .wishlist-page { max-width:1100px; margin:0 auto; padding:48px 32px 80px; }
+
+    .wishlist-page h1 {
+      font-family:'Cormorant Garamond',serif;
+      font-size:2.2rem; font-weight:700; margin-bottom:8px;
+    }
+
+    .wishlist-page .page-subtitle {
+      color:var(--muted); font-size:.9rem; margin-bottom:32px;
+    }
+
+    /* =============================================
+       NEW: PRODUCT DETAIL MODAL
+    ============================================= */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      display:flex; align-items:center; justify-content:center;
+      z-index:500; opacity:0; pointer-events:none; transition:opacity .28s;
+      padding:20px;
+    }
+    .modal-overlay.show { opacity:1; pointer-events:all; }
+
+    .modal-box {
+      background:var(--white); border-radius:20px;
+      width:100%; max-width:700px;
+      box-shadow:0 20px 80px rgba(0,0,0,.22);
+      overflow:hidden;
+      transform:scale(.94) translateY(16px);
+      transition:transform .28s;
+      display:grid; grid-template-columns:1fr 1fr;
+      max-height:90vh; overflow-y:auto;
+    }
+    .modal-overlay.show .modal-box { transform:scale(1) translateY(0); }
+
+    .modal-img {
+      height:340px; background:var(--tag-bg);
+      overflow:hidden; position:relative;
+    }
+    .modal-img img {
+      width:100%; height:100%; object-fit:cover;
+    }
+
+    .modal-body { padding:28px; display:flex; flex-direction:column; }
+
+    .modal-category {
+      font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+      color:var(--accent); margin-bottom:8px;
+    }
+    .modal-name {
+      font-family:'Cormorant Garamond',serif;
+      font-size:1.45rem; font-weight:700; line-height:1.25; margin-bottom:6px;
+    }
+    .modal-rating { font-size:.82rem; color:#f0a500; margin-bottom:16px; }
+    .modal-price {
+      font-family:'Cormorant Garamond',serif;
+      font-size:2rem; font-weight:800; color:var(--ink); margin-bottom:16px;
+    }
+
+    .modal-desc {
+      font-size:.88rem; line-height:1.65; color:var(--muted);
+      margin-bottom:24px; flex:1;
+    }
+
+    /* Modal action row: Add to Cart + Wishlist toggle */
+    .modal-actions { display:flex; gap:10px; }
+
+    .modal-btn-cart {
+      flex:1; background:var(--ink); color:white; border:none; border-radius:10px;
+      padding:12px; font-family:'DM Sans',sans-serif; font-weight:700;
+      font-size:.9rem; cursor:pointer; transition:background .18s;
+    }
+    .modal-btn-cart:hover  { background:var(--accent); }
+    .modal-btn-cart.in-cart { background:var(--green); }
+
+    .modal-btn-wish {
+      background:var(--accent-lt); border:1px solid #f5ccc8; border-radius:10px;
+      padding:12px 14px; font-size:1.1rem; cursor:pointer; transition:all .2s;
+    }
+    .modal-btn-wish:hover { background:#fbd5d0; }
+    .modal-btn-wish.wishlisted { background:var(--heart); color:white; border-color:var(--heart); }
+
+    .modal-close {
+      position:absolute; top:14px; right:14px;
+      width:30px; height:30px; border-radius:50%;
+      background:rgba(255,255,255,.9); border:none; cursor:pointer;
+      font-size:1rem; display:flex; align-items:center; justify-content:center;
+      z-index:10; transition:background .15s; box-shadow:0 1px 4px rgba(0,0,0,.15);
+    }
+    .modal-close:hover { background:white; }
+
+    /* Responsive modal */
+    @media (max-width:600px) {
+      .modal-box { grid-template-columns:1fr; }
+      .modal-img { height:220px; }
+    }
+
+    /* =============================================
+       CART PAGE — unchanged structure, cart logic improved in JS
+    ============================================= */
+    .cart-page { max-width:900px; margin:0 auto; padding:48px 32px 80px; }
+    .cart-page h1 {
+      font-family:'Cormorant Garamond',serif; font-size:2.2rem; font-weight:700; margin-bottom:32px;
+    }
+
+    .cart-layout {
+      display:grid; grid-template-columns:1fr 320px; gap:28px; align-items:start;
+    }
+
+    .cart-item {
+      background:var(--white); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px; display:flex; gap:16px; align-items:center; margin-bottom:12px;
+      animation:fadeUp .25s ease both;
+    }
+    .cart-item-img {
+      width:76px; height:76px; border-radius:10px; object-fit:cover;
+      background:var(--tag-bg); flex-shrink:0; cursor:pointer;
+    }
+    .cart-item-details { flex:1; }
+    .cart-item-name { font-size:.95rem; font-weight:600; margin-bottom:4px; }
+    .cart-item-price {
+      font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:700;
+      color:var(--accent); margin-bottom:10px;
+    }
+    /* IMPROVED: quantity control + unit price hint */
+    .cart-item-unit { font-size:.75rem; color:var(--muted); margin-bottom:8px; }
+
+    .qty-control {
+      display:flex; align-items:center; border:1px solid var(--border);
+      border-radius:8px; overflow:hidden; width:fit-content;
+    }
+    .qty-btn {
+      background:var(--bg); border:none; width:32px; height:32px; font-size:1rem;
+      cursor:pointer; color:var(--ink); transition:background .15s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .qty-btn:hover { background:var(--border); }
+    .qty-display {
+      width:36px; text-align:center; font-size:.9rem; font-weight:600;
+      border-left:1px solid var(--border); border-right:1px solid var(--border);
+      height:32px; line-height:32px; background:white;
+    }
+    .btn-remove {
+      background:none; border:none; color:#c0392b; font-size:.78rem; font-weight:500;
+      cursor:pointer; padding:0; margin-top:8px; display:block; transition:opacity .15s;
+    }
+    .btn-remove:hover { opacity:.7; }
+
+    .order-summary {
+      background:var(--white); border:1px solid var(--border); border-radius:var(--radius);
+      padding:24px; position:sticky; top:80px; box-shadow:var(--shadow);
+    }
+    .order-summary h2 {
+      font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-weight:700; margin-bottom:20px;
+    }
+    .summary-row { display:flex; justify-content:space-between; margin-bottom:12px; font-size:.9rem; }
+    .summary-row.total {
+      font-size:1.05rem; font-weight:700; padding-top:14px;
+      border-top:1px solid var(--border); margin-top:6px;
+    }
+    .summary-row .label { color:var(--muted); }
+    .summary-row.total .label { color:var(--ink); }
+
+    .btn-checkout {
+      width:100%; background:var(--accent); color:white; border:none; border-radius:10px;
+      padding:13px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:.95rem;
+      cursor:pointer; margin-top:20px; transition:opacity .18s;
+    }
+    .btn-checkout:hover { opacity:.87; }
+
+    .cart-empty { text-align:center; padding:64px 20px; color:var(--muted); }
+    .cart-empty .icon { font-size:3rem; margin-bottom:14px; }
+
+    .btn-clear {
+      background:none; border:1px solid var(--border); border-radius:8px;
+      padding:7px 14px; font-family:'DM Sans',sans-serif; font-size:.82rem;
+      color:var(--muted); cursor:pointer; transition:all .18s; margin-bottom:20px;
+    }
+    .btn-clear:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* =============================================
+       LOGIN PAGE — unchanged
+    ============================================= */
+    .login-page {
+      min-height: calc(100vh - 62px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #faf9f6 0%, #f0ede5 100%);
+    }
+
+    .login-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 44px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 48px rgba(0,0,0,.10);
+      text-align: center;
+      animation: fadeUp .4s ease both;
+    }
+
+    .login-logo {
+      font-family:'Cormorant Garamond',serif;
+      font-size:2rem; font-weight:700; color:var(--ink); margin-bottom:6px;
+    }
+    .login-logo span { color:var(--accent); }
+    .login-tagline { color:var(--muted); font-size:.9rem; margin-bottom:36px; }
+    .login-divider {
+      display:flex; align-items:center; gap:12px; margin:28px 0;
+      color:var(--muted); font-size:.82rem;
+    }
+    .login-divider::before, .login-divider::after {
+      content:''; flex:1; height:1px; background:var(--border);
+    }
+
+    .btn-google {
+      width:100%;
+      display:flex; align-items:center; justify-content:center; gap:12px;
+      background:white; color:#3c4043;
+      border:1px solid #dadce0; border-radius:12px;
+      padding:13px 20px;
+      font-family:'DM Sans',sans-serif; font-weight:500; font-size:.95rem;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,.08);
+      transition:box-shadow .2s, background .2s;
+    }
+    .btn-google:hover { background:#f8f9fa; box-shadow:0 2px 8px rgba(0,0,0,.13); }
+    .btn-google:active { background:#f1f3f4; }
+
+    .google-icon { width:20px; height:20px; flex-shrink:0; }
+
+    .login-footnote {
+      margin-top:24px; color:var(--muted); font-size:.78rem; line-height:1.6;
+    }
+    .login-footnote a { color:var(--accent); text-decoration:none; }
+    .login-footnote a:hover { text-decoration:underline; }
+
+    .login-benefits {
+      list-style:none; text-align:left; margin-bottom:28px;
+      border:1px solid var(--border); border-radius:12px; padding:16px 20px;
+      background:var(--bg);
+    }
+    .login-benefits li {
+      font-size:.88rem; color:var(--ink); padding:5px 0;
+      display:flex; align-items:center; gap:10px;
+    }
+    .login-benefits li span.icon { font-size:1.1rem; }
+
+    /* =============================================
+       LOGGED-IN USER DROPDOWN — unchanged
+    ============================================= */
+    .user-menu-wrap { position:relative; }
+
+    .user-dropdown {
+      position:absolute; top:calc(100% + 10px); right:0;
+      background:white; border:1px solid var(--border); border-radius:14px;
+      padding:8px; min-width:220px; box-shadow:0 8px 32px rgba(0,0,0,.12);
+      display:none; z-index:300; animation:fadeUp .2s ease both;
+    }
+    .user-menu-wrap.open .user-dropdown { display:block; }
+
+    .user-dropdown-header {
+      display:flex; align-items:center; gap:10px; padding:10px 12px 14px;
+      border-bottom:1px solid var(--border); margin-bottom:6px;
+    }
+    .user-dropdown-header img {
+      width:38px; height:38px; border-radius:50%; object-fit:cover;
+    }
+    .user-dropdown-name { font-weight:600; font-size:.9rem; }
+    .user-dropdown-email { font-size:.78rem; color:var(--muted); }
+
+    .dropdown-item {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 12px; border-radius:8px; font-size:.88rem;
+      cursor:pointer; transition:background .15s; color:var(--ink);
+    }
+    .dropdown-item:hover { background:var(--tag-bg); }
+    .dropdown-item.danger { color:var(--accent); }
+    .dropdown-item.danger:hover { background:var(--accent-lt); }
+
+    /* =============================================
+       GOOGLE OAUTH POPUP — unchanged
+    ============================================= */
+    .oauth-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.5);
+      display:flex; align-items:center; justify-content:center;
+      z-index:1000; opacity:0; pointer-events:none; transition:opacity .3s;
+    }
+    .oauth-overlay.show { opacity:1; pointer-events:all; }
+
+    .oauth-popup {
+      background:white; border-radius:20px;
+      width:100%; max-width:400px; margin:20px;
+      box-shadow:0 20px 80px rgba(0,0,0,.25);
+      overflow:hidden; transform:scale(.95) translateY(10px);
+      transition:transform .3s;
+    }
+    .oauth-overlay.show .oauth-popup { transform:scale(1) translateY(0); }
+
+    .oauth-top {
+      background:var(--google); padding:28px 32px 24px; text-align:center;
+    }
+    .oauth-google-logo {
+      display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:16px;
+    }
+    .oauth-google-logo svg { width:28px; height:28px; }
+    .oauth-google-logo span {
+      color:white; font-size:1.2rem; font-weight:600;
+      font-family:'DM Sans',sans-serif; letter-spacing:.3px;
+    }
+    .oauth-top h3 { color:white; font-size:1rem; font-weight:400; opacity:.9; }
+    .oauth-top p  { color:rgba(255,255,255,.7); font-size:.82rem; margin-top:4px; }
+
+    .oauth-body { padding:24px 32px 28px; }
+    .oauth-account {
+      border:2px solid #e8f0fe; border-radius:12px;
+      padding:14px 16px; margin-bottom:14px; cursor:pointer;
+      display:flex; align-items:center; gap:14px;
+      transition:border-color .2s, background .2s;
+    }
+    .oauth-account:hover { border-color:var(--google); background:#f8f9ff; }
+
+    .oauth-account-avatar {
+      width:44px; height:44px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.2rem; font-weight:700; color:white; flex-shrink:0;
+    }
+    .oauth-account-name  { font-weight:600; font-size:.92rem; }
+    .oauth-account-email { font-size:.8rem; color:var(--muted); }
+
+    .oauth-accounts-title {
+      font-size:.78rem; color:var(--muted); margin-bottom:12px; text-align:center;
+    }
+    .oauth-footer {
+      padding:14px 32px 20px; text-align:center;
+      border-top:1px solid #f1f3f4; font-size:.75rem; color:#80868b;
+    }
+    .oauth-footer a { color:var(--google); text-decoration:none; }
+
+    .btn-oauth-cancel {
+      background:none; border:none; cursor:pointer; color:#80868b;
+      font-size:.85rem; margin-top:10px; width:100%; padding:6px;
+      transition:color .2s; font-family:'DM Sans',sans-serif;
+    }
+    .btn-oauth-cancel:hover { color:var(--ink); }
+
+    /* =============================================
+       TOAST
+    ============================================= */
+    .toast {
+      position:fixed; bottom:24px; right:24px;
+      background:var(--ink); color:white; border-radius:12px;
+      padding:12px 20px; font-size:.88rem; font-weight:500;
+      opacity:0; transform:translateY(10px); transition:all .28s;
+      pointer-events:none; z-index:999;
+    }
+    .toast.show { opacity:1; transform:translateY(0); }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width:700px) {
+      header { padding:0 16px; }
+      .shop-hero { padding:28px 16px 20px; }
+      .products-grid { padding:0 16px 48px; }
+      .cart-page { padding:28px 16px 60px; }
+      .cart-layout { grid-template-columns:1fr; }
+      .wishlist-page { padding:28px 16px 60px; }
+      .controls { width:100%; }
+      .search-input { width:100%; }
+      .login-card { padding:32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================
+       HEADER
+       IMPROVED: added Wishlist tab in nav
+  ============================================= -->
+  <header>
+    <div class="logo">Shop<span>Drop</span></div>
+
+    <div class="nav-right">
+      <button class="nav-tab active" id="tab-shop"     onclick="showPage('shop')">Shop</button>
+      <!-- NEW: Wishlist tab -->
+      <button class="nav-tab"        id="tab-wishlist" onclick="showPage('wishlist')">❤️ Wishlist</button>
+      <button class="nav-tab"        id="tab-cart"     onclick="showPage('cart')">Cart</button>
+      <button class="nav-tab"        id="tab-login"    onclick="showPage('login')">Account</button>
+
+      <!-- Cart button with animated badge -->
+      <button class="cart-btn" onclick="showPage('cart')">
+        🛒 <span class="cart-count" id="cartCount">0</span>
+      </button>
+
+      <!-- User avatar (hidden until logged in) -->
+      <div class="user-menu-wrap" id="userMenuWrap" style="display:none">
+        <img class="user-avatar" id="headerAvatar" src="" alt="User" onclick="toggleUserMenu()"/>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown-header">
+            <img id="dropdownAvatar" src="" alt=""/>
+            <div>
+              <div class="user-dropdown-name"  id="dropdownName"></div>
+              <div class="user-dropdown-email" id="dropdownEmail"></div>
+            </div>
+          </div>
+          <div class="dropdown-item" onclick="showPage('shop')">🛍️ &nbsp;Continue Shopping</div>
+          <div class="dropdown-item" onclick="showPage('wishlist')">❤️ &nbsp;My Wishlist</div>
+          <div class="dropdown-item" onclick="showPage('cart')">🛒 &nbsp;View Cart</div>
+          <div class="dropdown-item danger" onclick="logout()">↩️ &nbsp;Sign Out</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ============================================
+       SHOP PAGE
+       IMPROVED: search covers name + description;
+       sort has rating option; clear filters button added
+  ============================================= -->
+  <div id="page-shop" class="page active">
+    <div class="shop-hero">
+      <h1>Curated<br/><em>Collections</em></h1>
+      <div class="controls">
+        <input type="text" class="search-input" id="searchInput"
+          placeholder="Search products..." oninput="liveSearch()"/>
+        <select class="filter-select" id="filterCategory" onchange="liveSearch()">
+          <option value="">All Categories</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Fashion">Fashion</option>
+          <option value="Home">Home</option>
+          <option value="Books">Books</option>
+          <option value="Sports">Sports</option>
+          <option value="Beauty">Beauty</option>
+          <option value="Kitchen">Kitchen</option>
+          <option value="Stationery">Stationery</option>
+        </select>
+        <select class="sort-select" id="sortSelect" onchange="liveSearch()">
+          <option value="default">Sort: Default</option>
+          <option value="low-high">Price: Low → High</option>
+          <option value="high-low">Price: High → Low</option>
+          <option value="rating">Top Rated</option>
+          <option value="name">Name: A–Z</option>
+        </select>
+        <!-- NEW: Clear all filters in one click -->
+        <button class="btn-clear-filters" onclick="clearFilters()">✕ Clear</button>
+      </div>
+    </div>
+    <p class="result-info" id="resultInfo"></p>
+    <div class="products-grid" id="productsGrid"></div>
+  </div>
+
+
+  <!-- ============================================
+       NEW: WISHLIST PAGE
+  ============================================= -->
+  <div id="page-wishlist" class="page">
+    <div class="wishlist-page">
+      <h1>My Wishlist ❤️</h1>
+      <p class="page-subtitle">Products you've saved for later.</p>
+      <!-- Wishlist cards injected here by renderWishlist() -->
+      <div class="products-grid" id="wishlistGrid"></div>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       CART PAGE — unchanged HTML structure
+       Cart logic improved in JS (qty buttons, total)
+  ============================================= -->
+  <div id="page-cart" class="page">
+    <div class="cart-page">
+      <h1>Your Cart 🛍️</h1>
+      <div id="cartContent"></div>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       LOGIN PAGE — unchanged
+  ============================================= -->
+  <div id="page-login" class="page">
+    <div class="login-page">
+      <div class="login-card">
+        <div class="login-logo">Shop<span>Drop</span></div>
+        <div class="login-tagline">Sign in to save your cart & wishlist</div>
+        <ul class="login-benefits">
+          <li><span class="icon">🛒</span> Sync your cart across devices</li>
+          <li><span class="icon">❤️</span> Save products to your Wishlist</li>
+          <li><span class="icon">📦</span> Track your orders easily</li>
+          <li><span class="icon">⚡</span> Faster checkout every time</li>
+        </ul>
+        <button class="btn-google" onclick="openGoogleLogin()">
+          <svg class="google-icon" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Continue with Google
+        </button>
+        <div class="login-footnote">
+          By signing in, you agree to our
+          <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.<br/>
+          <span style="margin-top:6px;display:block;color:#aaa">
+            🔒 Your data is never sold to third parties.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       GOOGLE OAUTH SIMULATION POPUP — unchanged
+  ============================================= -->
+  <div class="oauth-overlay" id="oauthOverlay" onclick="closeOAuthOnOverlay(event)">
+    <div class="oauth-popup">
+      <div class="oauth-top">
+        <div class="oauth-google-logo">
+          <svg viewBox="0 0 48 48">
+            <path fill="white" d="M43.6 20H24v8h11.3c-1.1 5.3-5.7 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9L37.5 9C34 5.8 29.2 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20c11.05 0 19.5-8 19.5-20 0-1.35-.15-2.65-.4-4z"/>
+          </svg>
+          <span>Google</span>
+        </div>
+        <h3>Sign in to ShopDrop</h3>
+        <p>shopdrop.example.com</p>
+      </div>
+      <div class="oauth-body">
+        <p class="oauth-accounts-title">Choose an account</p>
+        <div class="oauth-account" onclick="loginWithAccount('Rahul Sharma','rahul.sharma@gmail.com','RS','#4285F4')">
+          <div class="oauth-account-avatar" style="background:#4285F4">R</div>
+          <div>
+            <div class="oauth-account-name">Rahul Sharma</div>
+            <div class="oauth-account-email">rahul.sharma@gmail.com</div>
+          </div>
+          <span style="margin-left:auto;color:#bbb">›</span>
+        </div>
+        <div class="oauth-account" onclick="loginWithAccount('Priya Mehta','priya.mehta@gmail.com','PM','#EA4335')">
+          <div class="oauth-account-avatar" style="background:#EA4335">P</div>
+          <div>
+            <div class="oauth-account-name">Priya Mehta</div>
+            <div class="oauth-account-email">priya.mehta@gmail.com</div>
+          </div>
+          <span style="margin-left:auto;color:#bbb">›</span>
+        </div>
+        <div class="oauth-account" onclick="loginWithAccount('Arjun Verma','arjun.v@gmail.com','AV','#34A853')">
+          <div class="oauth-account-avatar" style="background:#34A853">A</div>
+          <div>
+            <div class="oauth-account-name">Arjun Verma</div>
+            <div class="oauth-account-email">arjun.v@gmail.com</div>
+          </div>
+          <span style="margin-left:auto;color:#bbb">›</span>
+        </div>
+        <button class="btn-oauth-cancel" onclick="closeOAuth()">Cancel</button>
+      </div>
+      <div class="oauth-footer">
+        <a href="#">Privacy Policy</a> · <a href="#">Terms of Service</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================
+       NEW: PRODUCT DETAIL MODAL
+       Opened by openModal(id); closed by closeModal()
+  ============================================= -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal-box" id="modalBox">
+
+      <!-- Close button (top-right) -->
+      <button class="modal-close" onclick="closeModal()">✕</button>
+
+      <!-- Left: product image -->
+      <div class="modal-img">
+        <img id="modalImage" src="" alt=""/>
+      </div>
+
+      <!-- Right: product details -->
+      <div class="modal-body">
+        <div class="modal-category" id="modalCategory"></div>
+        <div class="modal-name"     id="modalName"></div>
+        <div class="modal-rating"   id="modalRating"></div>
+        <div class="modal-price"    id="modalPrice"></div>
+        <p  class="modal-desc"      id="modalDesc"></p>
+        <div class="modal-actions">
+          <button class="modal-btn-cart" id="modalCartBtn" onclick="modalAddToCart()">Add to Cart</button>
+          <button class="modal-btn-wish" id="modalWishBtn" onclick="modalToggleWish()" title="Save to Wishlist">🤍</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+
+  <!-- ============================================
+       JAVASCRIPT
+  ============================================= -->
+  <script>
+
+    /* =================================================
+       PRODUCTS DATA — 20 items across 8 categories
+       Each product now has a "description" field
+       used in the Product Detail Modal.
+    ================================================= */
+    function aiImg(prompt, seed) {
+      var encoded = encodeURIComponent(prompt + ", product photography, clean white background, studio lighting, high quality");
+      return "https://image.pollinations.ai/prompt/" + encoded + "?width=400&height=300&seed=" + seed + "&nologo=true";
+    }
+
+    var products = [
+      // Electronics
+      { id:1,  name:"Wireless Noise-Cancelling Headphones", category:"Electronics", price:4999,  rating:4.5,
+        description:"Industry-leading noise cancellation with 30-hour battery life. Foldable design, premium leather cushions, and Hi-Res Audio certified. Perfect for travel and work-from-home.",
+        image: aiImg("premium wireless over-ear headphones black matte", 101) },
+      { id:2,  name:"Mechanical Gaming Keyboard RGB",        category:"Electronics", price:3499,  rating:4.6,
+        description:"Full-size mechanical keyboard with Cherry MX switches and per-key RGB lighting. Anti-ghosting N-key rollover and detachable USB-C cable. Built to last.",
+        image: aiImg("mechanical gaming keyboard with RGB backlight", 102) },
+      { id:3,  name:"Portable Bluetooth Speaker",            category:"Electronics", price:1999,  rating:4.2,
+        description:"360° surround sound with 20W output. IPX7 waterproof rating, 12-hour battery, and USB-C fast charging. Pairs with two devices simultaneously.",
+        image: aiImg("compact portable bluetooth speaker cylindrical", 103) },
+      { id:4,  name:"Smart Watch with Heart Monitor",        category:"Electronics", price:5999,  rating:4.7,
+        description:"Advanced health tracking with SpO2 sensor, heart rate monitor, and sleep analysis. AMOLED display, GPS built-in, and 7-day battery. Water resistant to 50m.",
+        image: aiImg("modern smartwatch with digital display fitness tracker", 104) },
+      { id:5,  name:"USB-C 65W Fast Charging Adapter",       category:"Electronics", price:899,   rating:4.3,
+        description:"65W GaN technology in a travel-sized body. Charges laptops, tablets, and phones simultaneously through dual ports. Works with MacBook, iPad, and Android devices.",
+        image: aiImg("compact USB-C 65W fast charging power adapter white", 105) },
+      // Fashion
+      { id:6,  name:"Slim-Fit Cotton Polo Shirt — Navy",     category:"Fashion",     price:899,   rating:4.2,
+        description:"Premium 100% combed cotton polo with ribbed collar. Slim fit cut for a modern silhouette. Pre-shrunk and colour-fast. Available in sizes S–XXL.",
+        image: aiImg("slim fit navy blue cotton polo shirt folded", 201) },
+      { id:7,  name:"Women's Oversized Hoodie — Cream",      category:"Fashion",     price:1199,  rating:4.6,
+        description:"Ultra-soft 380 GSM fleece-lined hoodie with dropped shoulders and kangaroo pocket. Relaxed fit, ribbed cuffs, and a brushed interior for extra warmth.",
+        image: aiImg("oversized cream beige women hoodie sweatshirt", 202) },
+      { id:8,  name:"Leather Bifold Wallet — Brown",         category:"Fashion",     price:699,   rating:4.4,
+        description:"Full-grain genuine leather bifold with 6 card slots and a centre bill pocket. RFID blocking lining protects your cards. Slim enough to sit comfortably in any pocket.",
+        image: aiImg("genuine brown leather bifold wallet unfolded", 203) },
+      // Home
+      { id:9,  name:"Minimalist Ceramic Desk Lamp",          category:"Home",        price:2199,  rating:4.7,
+        description:"Handcrafted matte ceramic base with linen shade. Warm 3000K LED bulb included. Touch-sensitive dimmer with 3 brightness levels. Perfect for reading nooks and desks.",
+        image: aiImg("minimalist ceramic table lamp warm light modern design", 301) },
+      { id:10, name:"Linen Throw Blanket — Sage Green",      category:"Home",        price:1599,  rating:4.3,
+        description:"100% washed linen throw in calming sage green. Naturally breathable, gets softer with every wash. Generous 130×170cm size, perfect for sofas and beds.",
+        image: aiImg("soft sage green linen throw blanket folded neatly", 302) },
+      { id:11, name:"Scented Soy Candle Set (3-pack)",        category:"Home",        price:799,   rating:4.5,
+        description:"Set of three soy-wax candles in amber glass jars — Sandalwood, Jasmine, and Cedarwood. 40-hour burn time each. Lead-free cotton wicks for a clean burn.",
+        image: aiImg("set of three scented soy candles in glass jars", 303) },
+      // Kitchen
+      { id:12, name:"Bamboo Cutting Board Set (3-piece)",    category:"Kitchen",     price:799,   rating:4.1,
+        description:"Set of three graduated bamboo cutting boards. Naturally antimicrobial and knife-friendly. Juice groove on the largest board. Dishwasher safe; made from sustainable bamboo.",
+        image: aiImg("set of three bamboo wooden cutting boards stacked", 401) },
+      { id:13, name:"Stainless Steel French Press Coffee",   category:"Kitchen",     price:1499,  rating:4.6,
+        description:"Double-walled insulated French press keeps coffee hot for 2 hours. 4-layer filtration system for a clean, grit-free brew. 1L capacity — makes 8 cups.",
+        image: aiImg("stainless steel french press coffee maker shiny", 402) },
+      { id:14, name:"Non-Stick Ceramic Fry Pan 26cm",        category:"Kitchen",     price:1299,  rating:4.4,
+        description:"PFOA-free ceramic non-stick coating for healthy, oil-free cooking. Oven-safe up to 220°C. Ergonomic silicone handle and suitable for all hob types including induction.",
+        image: aiImg("modern ceramic non-stick frying pan grey", 403) },
+      // Sports
+      { id:15, name:"Yoga Mat Anti-Slip 6mm — Purple",       category:"Sports",      price:1299,  rating:4.4,
+        description:"6mm thick high-density TPE foam provides cushioning for joints. Dual-texture surface grips your hands and the floor. Includes carry strap. 183×61cm, 1.1kg.",
+        image: aiImg("purple anti-slip yoga exercise mat rolled up", 501) },
+      { id:16, name:"Men's Running Shoes — Lightweight",     category:"Sports",      price:2999,  rating:4.5,
+        description:"Engineered mesh upper for breathability with a cushioned EVA midsole. Rubber outsole with flex grooves for natural foot movement. Weighs just 220g per shoe.",
+        image: aiImg("lightweight men running sneakers white blue", 502) },
+      // Books
+      { id:17, name:"JavaScript: The Good Parts",            category:"Books",       price:499,   rating:4.8,
+        description:"Douglas Crockford's landmark book distilling the best features of JavaScript. Essential reading for web developers who want to write reliable, readable code. 176 pages.",
+        image: aiImg("JavaScript programming book with butterfly on cover", 601) },
+      { id:18, name:"Clean Code by Robert C. Martin",        category:"Books",       price:649,   rating:4.9,
+        description:"A handbook of agile software craftsmanship covering naming, functions, comments, and formatting. Includes case studies refactoring real-world messy code. 431 pages.",
+        image: aiImg("Clean Code software development book with neat cover", 602) },
+      // Beauty
+      { id:19, name:"Vitamin C Brightening Face Serum",      category:"Beauty",      price:599,   rating:4.5,
+        description:"20% stabilised Vitamin C with Hyaluronic Acid and Ferulic Acid. Visibly brightens skin, fades dark spots, and boosts collagen in 4 weeks. Suitable for all skin types.",
+        image: aiImg("vitamin C brightening face serum dropper bottle glass", 701) },
+      // Stationery
+      { id:20, name:"Premium Hardcover Notebook A5",         category:"Stationery",  price:349,   rating:4.6,
+        description:"192 pages of 100gsm ivory acid-free paper in a lay-flat hardcover. Satin ribbon bookmark, elastic closure band, and expandable back pocket. Ideal for journaling and sketching.",
+        image: aiImg("premium hardcover A5 notebook with ribbon bookmark", 801) },
+    ];
+
+
+    /* =================================================
+       DATA — loaded from localStorage on startup
+    ================================================= */
+    var cart      = JSON.parse(localStorage.getItem("shopdrop_cart"))     || [];
+    var wishlist  = JSON.parse(localStorage.getItem("shopdrop_wishlist")) || []; // NEW
+    var currentUser = JSON.parse(localStorage.getItem("shopdrop_user"))   || null;
+
+    // Currently open product in the modal (used by modal cart/wish buttons)
+    var activeProductId = null; // NEW
+
+
+    /* =================================================
+       SAVE FUNCTIONS
+    ================================================= */
+    function saveCart()     { localStorage.setItem("shopdrop_cart",     JSON.stringify(cart));     }
+    function saveWishlist() { localStorage.setItem("shopdrop_wishlist", JSON.stringify(wishlist)); } // NEW
+    function saveUser(u)    { localStorage.setItem("shopdrop_user",     JSON.stringify(u));        }
+
+
+    /* =================================================
+       showPage(name) — switch between pages
+       MODIFIED: now handles 'wishlist' page too
+    ================================================= */
+    function showPage(name) {
+      document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+      document.getElementById("page-" + name).classList.add("active");
+
+      // Update nav tab highlights
+      document.getElementById("tab-shop").classList.toggle("active",     name === "shop");
+      document.getElementById("tab-wishlist").classList.toggle("active", name === "wishlist"); // NEW
+      document.getElementById("tab-cart").classList.toggle("active",     name === "cart");
+      document.getElementById("tab-login").classList.toggle("active",    name === "login");
+
+      if (name === "cart")     renderCart();
+      if (name === "wishlist") renderWishlist(); // NEW
+      if (name === "login" && currentUser) showPage("shop");
+    }
+
+
+    /* =================================================
+       GOOGLE LOGIN FLOW — unchanged
+    ================================================= */
+    function openGoogleLogin()  { document.getElementById("oauthOverlay").classList.add("show"); }
+    function closeOAuth()       { document.getElementById("oauthOverlay").classList.remove("show"); }
+    function closeOAuthOnOverlay(e) {
+      if (e.target === document.getElementById("oauthOverlay")) closeOAuth();
+    }
+
+    function loginWithAccount(name, email, initials, color) {
+      var user = {
+        name     : name,
+        email    : email,
+        initials : initials,
+        color    : color,
+        avatar   : "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) +
+                   "&background=" + color.replace("#","") + "&color=fff&size=128&rounded=true"
+      };
+      currentUser = user;
+      saveUser(user);
+      closeOAuth();
+      updateHeaderForUser();
+      showPage("shop");
+      showToast("👋 Welcome, " + name.split(" ")[0] + "!");
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem("shopdrop_user");
+      closeUserMenu();
+      updateHeaderForUser();
+      showToast("You've been signed out.");
+    }
+
+    function updateHeaderForUser() {
+      var wrap     = document.getElementById("userMenuWrap");
+      var loginTab = document.getElementById("tab-login");
+
+      if (currentUser) {
+        wrap.style.display     = "block";
+        loginTab.style.display = "none";
+        document.getElementById("headerAvatar").src    = currentUser.avatar;
+        document.getElementById("dropdownAvatar").src  = currentUser.avatar;
+        document.getElementById("dropdownName").textContent  = currentUser.name;
+        document.getElementById("dropdownEmail").textContent = currentUser.email;
+      } else {
+        wrap.style.display     = "none";
+        loginTab.style.display = "block";
+      }
+    }
+
+    function toggleUserMenu() { document.getElementById("userMenuWrap").classList.toggle("open"); }
+    function closeUserMenu()  { document.getElementById("userMenuWrap").classList.remove("open"); }
+
+    document.addEventListener("click", function(e) {
+      var wrap = document.getElementById("userMenuWrap");
+      if (wrap && !wrap.contains(e.target)) closeUserMenu();
+    });
+
+
+    /* =================================================
+       NEW: PRODUCT DETAIL MODAL
+       openModal(id)  — fills the modal with product data and shows it
+       closeModal()   — hides the modal
+    ================================================= */
+    function openModal(productId) {
+      var p = products.find(function(x) { return x.id === productId; });
+      if (!p) return;
+
+      // Remember which product is open (used by modal buttons)
+      activeProductId = productId;
+
+      // Fill modal fields
+      document.getElementById("modalImage").src    = p.image;
+      document.getElementById("modalImage").alt    = p.name;
+      document.getElementById("modalCategory").textContent = p.category;
+      document.getElementById("modalName").textContent     = p.name;
+      document.getElementById("modalRating").textContent   = buildStars(p.rating) + "  " + p.rating;
+      document.getElementById("modalPrice").textContent    = "₹" + p.price.toLocaleString("en-IN");
+      document.getElementById("modalDesc").textContent     = p.description;
+
+      // Update the cart button state
+      var inCart = cart.some(function(item) { return item.id === productId; });
+      var cartBtn = document.getElementById("modalCartBtn");
+      cartBtn.textContent = inCart ? "✓ In Cart" : "Add to Cart";
+      cartBtn.className   = inCart ? "modal-btn-cart in-cart" : "modal-btn-cart";
+
+      // Update the wishlist heart button state
+      var inWishlist = wishlist.includes(productId);
+      var wishBtn = document.getElementById("modalWishBtn");
+      wishBtn.textContent = inWishlist ? "❤️" : "🤍";
+      wishBtn.className   = inWishlist ? "modal-btn-wish wishlisted" : "modal-btn-wish";
+      wishBtn.title       = inWishlist ? "Remove from Wishlist" : "Add to Wishlist";
+
+      // Show the modal
+      document.getElementById("modalOverlay").classList.add("show");
+      document.body.style.overflow = "hidden"; // prevent background scroll
+    }
+
+    function closeModal() {
+      document.getElementById("modalOverlay").classList.remove("show");
+      document.body.style.overflow = "";
+      activeProductId = null;
+    }
+
+    // Close when clicking the dark backdrop (not the box itself)
+    function closeModalOnOverlay(e) {
+      if (e.target === document.getElementById("modalOverlay")) closeModal();
+    }
+
+    // Also close modal on Escape key
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") closeModal();
+    });
+
+    // Called by the "Add to Cart" button inside the modal
+    function modalAddToCart() {
+      if (activeProductId !== null) addToCart(activeProductId);
+      // Update modal button to reflect new cart state
+      var inCart  = cart.some(function(item) { return item.id === activeProductId; });
+      var cartBtn = document.getElementById("modalCartBtn");
+      if (cartBtn) {
+        cartBtn.textContent = inCart ? "✓ In Cart" : "Add to Cart";
+        cartBtn.className   = inCart ? "modal-btn-cart in-cart" : "modal-btn-cart";
+      }
+    }
+
+    // Called by the heart button inside the modal
+    function modalToggleWish() {
+      if (activeProductId !== null) {
+        toggleWishlist(activeProductId);
+        // Refresh the modal heart button state
+        var inWishlist = wishlist.includes(activeProductId);
+        var wishBtn    = document.getElementById("modalWishBtn");
+        if (wishBtn) {
+          wishBtn.textContent = inWishlist ? "❤️" : "🤍";
+          wishBtn.className   = inWishlist ? "modal-btn-wish wishlisted" : "modal-btn-wish";
+          wishBtn.title       = inWishlist ? "Remove from Wishlist" : "Add to Wishlist";
+        }
+      }
+    }
+
+
+    /* =================================================
+       NEW: WISHLIST LOGIC
+       toggleWishlist(id) — adds or removes an ID from the wishlist array
+       renderWishlist()   — renders the wishlist page
+    ================================================= */
+
+    /* toggleWishlist(productId)
+       If productId is in wishlist → remove it (unsave)
+       If it is NOT in wishlist    → add it (save)
+       Saves to localStorage and updates the heart button on the card. */
+    function toggleWishlist(productId) {
+      var inWishlist = wishlist.includes(productId);
+
+      if (inWishlist) {
+        // Remove from wishlist using filter (returns new array without this id)
+        wishlist = wishlist.filter(function(id) { return id !== productId; });
+        showToast("💔 Removed from Wishlist");
+      } else {
+        wishlist.push(productId);
+        showToast("❤️ Added to Wishlist!");
+      }
+
+      saveWishlist(); // persist to localStorage
+
+      // Update the heart button on the product card (without full re-render)
+      var heartBtn = document.querySelector('[data-wish-id="' + productId + '"]');
+      if (heartBtn) {
+        heartBtn.textContent = wishlist.includes(productId) ? "❤️" : "🤍";
+        heartBtn.title       = wishlist.includes(productId) ? "Remove from Wishlist" : "Add to Wishlist";
+        heartBtn.classList.toggle("wishlisted", wishlist.includes(productId));
+      }
+    }
+
+    /* renderWishlist()
+       Finds all product objects whose IDs are in the wishlist array,
+       then renders them as product cards in the wishlist grid. */
+    function renderWishlist() {
+      var grid = document.getElementById("wishlistGrid");
+
+      // Filter the main products array to only wishlisted ones
+      var list = products.filter(function(p) { return wishlist.includes(p.id); });
+
+      if (list.length === 0) {
+        grid.innerHTML =
+          '<div class="empty-state">' +
+          '  <div class="icon">💔</div>' +
+          '  <p>Your wishlist is empty.<br/>Click ❤️ on any product to save it here.</p>' +
+          '</div>';
+        return;
+      }
+
+      // Render full product cards — reuse buildProductCardHTML()
+      grid.innerHTML = list.map(function(p) { return buildProductCardHTML(p); }).join("");
+    }
+
+
+    /* =================================================
+       LIVE SEARCH + FILTER + SORT
+       MODIFIED: added "rating" sort option; clear filters function
+    ================================================= */
+    function liveSearch() {
+      var searchText     = document.getElementById("searchInput").value.toLowerCase().trim();
+      var filterCategory = document.getElementById("filterCategory").value;
+      var sortOrder      = document.getElementById("sortSelect").value;
+
+      // Filter: match product name against search text + category
+      var results = products.filter(function(p) {
+        var nameMatch     = p.name.toLowerCase().includes(searchText);
+        var categoryMatch = filterCategory === "" || p.category === filterCategory;
+        return nameMatch && categoryMatch;
+      });
+
+      // Sort the filtered results
+      if (sortOrder === "low-high")  results.sort(function(a,b) { return a.price  - b.price;  });
+      if (sortOrder === "high-low")  results.sort(function(a,b) { return b.price  - a.price;  });
+      if (sortOrder === "rating")    results.sort(function(a,b) { return b.rating - a.rating; }); // NEW
+      if (sortOrder === "name")      results.sort(function(a,b) { return a.name.localeCompare(b.name); });
+
+      renderProducts(results);
+    }
+
+    /* NEW: clearFilters() — resets all search & filter controls */
+    function clearFilters() {
+      document.getElementById("searchInput").value    = "";
+      document.getElementById("filterCategory").value = "";
+      document.getElementById("sortSelect").value     = "default";
+      liveSearch();
+      showToast("🔄 Filters cleared.");
+    }
+
+
+    /* =================================================
+       RENDER PRODUCTS
+       MODIFIED: now renders wishlist heart + "Details" button
+                 on each card, and calls buildProductCardHTML()
+    ================================================= */
+    function renderProducts(list) {
+      var grid = document.getElementById("productsGrid");
+      var info = document.getElementById("resultInfo");
+
+      info.textContent = "Showing " + list.length + " of " + products.length + " products";
+
+      if (list.length === 0) {
+        grid.innerHTML =
+          '<div class="empty-state"><div class="icon">🔍</div>' +
+          '<p>No products match your search. <a onclick="clearFilters()">Clear filters</a></p></div>';
+        return;
+      }
+
+      // Build all cards using the shared helper
+      grid.innerHTML = list.map(function(p) { return buildProductCardHTML(p); }).join("");
+    }
+
+    /* buildProductCardHTML(p)
+       Shared helper — builds a product card HTML string.
+       Used by both renderProducts() and renderWishlist()
+       so the card looks identical in both places. */
+    function buildProductCardHTML(p) {
+      var inCart       = cart.some(function(item) { return item.id === p.id; });
+      var inWishlist   = wishlist.includes(p.id);
+      var btnText      = inCart ? "✓ In Cart" : "Add to Cart";
+      var btnCls       = inCart ? "btn-add-cart in-cart" : "btn-add-cart";
+      var heartIcon    = inWishlist ? "❤️" : "🤍";
+      var heartCls     = inWishlist ? "btn-wish wishlisted" : "btn-wish";
+      var heartTitle   = inWishlist ? "Remove from Wishlist" : "Add to Wishlist";
+      var stars        = buildStars(p.rating);
+      var price        = "₹" + p.price.toLocaleString("en-IN");
+
+      return (
+        '<div class="product-card">' +
+        '  <div class="product-img-wrap" onclick="openModal(' + p.id + ')">' +
+        '    <div class="img-skeleton" id="skel-' + p.id + '"></div>' +
+        '    <img src="' + p.image + '" alt="' + escapeHTML(p.name) + '" loading="lazy"' +
+        '      onload="imgLoaded(' + p.id + ')" onerror="imgError(' + p.id + ')"/>' +
+        '    <span class="product-tag">' + p.category + '</span>' +
+        // NEW: Heart bookmark button (top-right of image)
+        '    <button class="' + heartCls + '" title="' + heartTitle + '" ' +
+        '      data-wish-id="' + p.id + '" ' +
+        '      onclick="event.stopPropagation(); toggleWishlist(' + p.id + ')">' + heartIcon +
+        '    </button>' +
+        '  </div>' +
+        '  <div class="product-info">' +
+        // Clicking product name also opens modal
+        '    <div class="product-name" onclick="openModal(' + p.id + ')">' + escapeHTML(p.name) + '</div>' +
+        '    <div class="product-price-row">' +
+        '      <div class="product-price">' + price + '</div>' +
+        '      <div class="product-rating">' + stars + ' ' + p.rating + '</div>' +
+        '    </div>' +
+        // IMPROVED: two action buttons side-by-side
+        '    <div class="card-actions">' +
+        '      <button class="' + btnCls + '" data-id="' + p.id + '" onclick="addToCart(' + p.id + ')">' +
+        btnText + '</button>' +
+        '      <button class="btn-details" onclick="openModal(' + p.id + ')">Details</button>' +
+        '    </div>' +
+        '  </div>' +
+        '</div>'
+      );
+    }
+
+    // Remove shimmer skeleton once image has loaded
+    function imgLoaded(id) {
+      var skel = document.getElementById("skel-" + id);
+      if (skel) skel.style.display = "none";
+    }
+
+    // On image error, show a solid fallback background
+    function imgError(id) {
+      var skel = document.getElementById("skel-" + id);
+      if (skel) { skel.style.animation = "none"; skel.style.background = "#e8e5de"; }
+    }
+
+
+    /* =================================================
+       ADD TO CART — unchanged logic
+       IMPROVED: also refreshes wishlist page if open
+    ================================================= */
+    function addToCart(productId) {
+      if (!currentUser) {
+        showToast("Please sign in to add to cart!");
+        showPage("login");
+        return;
+      }
+
+      var product  = products.find(function(p) { return p.id === productId; });
+      if (!product) return;
+
+      var existing = cart.find(function(item) { return item.id === productId; });
+
+      if (existing) {
+        existing.quantity += 1;
+        showToast("Quantity updated ✓");
+      } else {
+        cart.push({ id:product.id, name:product.name, price:product.price, image:product.image, quantity:1 });
+        showToast("✅ Added to cart!");
+      }
+
+      saveCart();
+      updateCartBadge(); // IMPROVED: badge animates on change
+
+      // Update the "Add to Cart" button on the card (without full re-render)
+      var btn = document.querySelector('[data-id="' + productId + '"]');
+      if (btn) { btn.textContent = "✓ In Cart"; btn.classList.add("in-cart"); }
+    }
+
+
+    /* =================================================
+       CART OPERATIONS
+       changeQuantity, removeFromCart, clearCart — unchanged
+    ================================================= */
+    function changeQuantity(productId, delta) {
+      var item = cart.find(function(c) { return c.id === productId; });
+      if (!item) return;
+      item.quantity += delta;
+      if (item.quantity <= 0) { removeFromCart(productId); return; }
+      saveCart(); updateCartBadge(); renderCart();
+    }
+
+    function removeFromCart(productId) {
+      cart = cart.filter(function(item) { return item.id !== productId; });
+      saveCart(); updateCartBadge(); renderCart();
+      showToast("Item removed.");
+    }
+
+    function clearCart() {
+      if (!cart.length) return;
+      if (!confirm("Clear all items from cart?")) return;
+      cart = []; saveCart(); updateCartBadge(); renderCart();
+      showToast("Cart cleared.");
+    }
+
+    function calculateTotal() {
+      return cart.reduce(function(sum, item) { return sum + item.price * item.quantity; }, 0);
+    }
+
+    /* IMPROVED: updateCartBadge()
+       Shows the total quantity of items in the cart.
+       Animates the badge with a quick "bump" scale effect. */
+    function updateCartBadge() {
+      var totalQty = cart.reduce(function(sum, item) { return sum + item.quantity; }, 0);
+      var badge    = document.getElementById("cartCount");
+      badge.textContent = totalQty;
+
+      // Quick scale animation to draw attention to the number changing
+      badge.classList.remove("bump");
+      void badge.offsetWidth; // force reflow so animation restarts
+      badge.classList.add("bump");
+      setTimeout(function() { badge.classList.remove("bump"); }, 220);
+    }
+
+
+    /* =================================================
+       RENDER CART PAGE
+       IMPROVED: shows unit price below item name
+    ================================================= */
+    function renderCart() {
+      var el = document.getElementById("cartContent");
+
+      if (cart.length === 0) {
+        el.innerHTML =
+          '<div class="cart-empty"><div class="icon">🛒</div>' +
+          '<p>Your cart is empty.<br/>Go add some products!</p></div>';
+        return;
+      }
+
+      var subtotal   = calculateTotal();
+      var shipping   = subtotal >= 999 ? 0 : 99;
+      var grandTotal = subtotal + shipping;
+
+      // Clear cart button at top of item list
+      var itemsHtml = '<button class="btn-clear" onclick="clearCart()">🗑️ Clear Cart</button>';
+
+      cart.forEach(function(item) {
+        var itemTotal = item.price * item.quantity;
+        itemsHtml +=
+          '<div class="cart-item">' +
+          '  <img class="cart-item-img" src="' + item.image + '" alt="' + escapeHTML(item.name) + '"' +
+          '    onclick="openModal(' + item.id + ')" title="View details"/>' +
+          '  <div class="cart-item-details">' +
+          '    <div class="cart-item-name">' + escapeHTML(item.name) + '</div>' +
+          // IMPROVED: show per-item price + total for this line
+          '    <div class="cart-item-unit">₹' + item.price.toLocaleString("en-IN") + ' each</div>' +
+          '    <div class="cart-item-price">₹' + itemTotal.toLocaleString("en-IN") + '</div>' +
+          '    <div class="qty-control">' +
+          '      <button class="qty-btn" onclick="changeQuantity(' + item.id + ',-1)">−</button>' +
+          '      <div class="qty-display">' + item.quantity + '</div>' +
+          '      <button class="qty-btn" onclick="changeQuantity(' + item.id + ',+1)">+</button>' +
+          '    </div>' +
+          '    <button class="btn-remove" onclick="removeFromCart(' + item.id + ')">✕ Remove</button>' +
+          '  </div>' +
+          '</div>';
+      });
+
+      var summaryHtml =
+        '<div class="order-summary">' +
+        '  <h2>Order Summary</h2>' +
+        '  <div class="summary-row"><span class="label">Subtotal (' + cart.reduce(function(s,i){return s+i.quantity;},0) + ' items)</span>' +
+        '    <span>₹' + subtotal.toLocaleString("en-IN") + '</span></div>' +
+        '  <div class="summary-row"><span class="label">Shipping</span>' +
+        '    <span>' + (shipping === 0 ? '<span style="color:var(--green)">FREE</span>' : '₹' + shipping) + '</span></div>' +
+        '  <div class="summary-row total"><span class="label">Total</span>' +
+        '    <span>₹' + grandTotal.toLocaleString("en-IN") + '</span></div>' +
+        '  <button class="btn-checkout" onclick="checkout()">Proceed to Checkout →</button>' +
+        '</div>';
+
+      el.innerHTML = '<div class="cart-layout"><div>' + itemsHtml + '</div>' + summaryHtml + '</div>';
+    }
+
+    function checkout() {
+      if (!currentUser) { showPage("login"); showToast("Sign in to checkout!"); return; }
+      alert("🎉 Order placed successfully!\nThank you, " + currentUser.name.split(" ")[0] + "!");
+      cart = []; saveCart(); updateCartBadge();
+      showPage("shop"); liveSearch();
+    }
+
+
+    /* =================================================
+       HELPERS — unchanged
+    ================================================= */
+    function buildStars(r) {
+      var s = "";
+      for (var i = 0; i < Math.floor(r); i++) s += "★";
+      if (r % 1 >= .5) s += "½";
+      return s;
+    }
+
+    function escapeHTML(s) {
+      return String(s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function showToast(msg) {
+      var t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(function() { t.classList.remove("show"); }, 2200);
+    }
+
+
+    /* =================================================
+       INIT — runs once on page load
+    ================================================= */
+    updateHeaderForUser();
+    updateCartBadge();
+    liveSearch();
+
+  </script>
+</body>
+</html>
